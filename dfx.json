@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "unite-escrow-backend": {
+      "candid": "src/unite-escrow-backend/unite-escrow-backend.did",
+      "package": "unite-escrow-backend",
+      "type": "rust"
+    },
+    "unite-escrow-frontend": {
+      "dependencies": [
+        "unite-escrow-backend"
+      ],
+      "source": [
+        "src/unite-escrow-frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "unite-escrow-frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

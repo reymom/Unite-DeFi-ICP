@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/unite-escrow-backend"
+]
+resolver = "2"
