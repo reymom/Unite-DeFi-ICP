@@ -1,0 +1,18 @@
+[
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "orderHash", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "hashlock", "type": "bytes32" },
+      { "internalType": "address", "name": "maker", "type": "address" },
+      { "internalType": "address", "name": "taker", "type": "address" },
+      { "internalType": "address", "name": "token", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "internalType": "uint256", "name": "safetyDeposit", "type": "uint256" },
+      { "internalType": "uint256", "name": "timelocks", "type": "uint256" }
+    ],
+    "name": "deployEscrowDst",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

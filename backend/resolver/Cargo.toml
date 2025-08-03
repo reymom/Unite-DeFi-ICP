@@ -1,0 +1,22 @@
+[package]
+name = "resolver"
+version.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+candid = { workspace = true }
+ic-cdk = { workspace = true }
+ic-cdk-timers = { workspace = true }
+ethers-core = { workspace = true }
+evm-rpc-canister-types = { workspace = true }
+serde = { workspace = true }
+shared = { path = "../shared" }
+thiserror = { workspace = true }
+
+# for short-circuiting transitive dependency resolution from ethers-core
+getrandom = { workspace = true }

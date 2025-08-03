@@ -1,0 +1,48 @@
+type Asset = variant {
+  ICP;
+  Erc20 : record { chain_id : nat64; address : opt text };
+  ICRC : principal;
+};
+type Order = record {
+  auction_start_rate : float64;
+  signature : blob;
+  maker_asset : Asset;
+  hashlock : blob;
+  maker_evm : text;
+  maker_icp : principal;
+  making_amount : nat;
+  salt : text;
+  price_curve : PriceCurve;
+  safety_deposit : nat64;
+  auction_start_at : nat64;
+  waiting_period : nat64;
+  maker_traits : opt text;
+  timelocks : Timelocks;
+  order_hash : text;
+  taker_asset : Asset;
+  min_return_amount : nat64;
+};
+type OrderStatus = variant { Filled; Cancelled; Expired; Pending };
+type PriceCurve = record { points : vec PricePoint };
+type PricePoint = record {
+  price_multiplier : float64;
+  time_offset_secs : nat64;
+};
+type Result = variant { Ok; Err : text };
+type Timelocks = record {
+  withdrawal : nat64;
+  finality_lock : nat64;
+  cancellation : nat64;
+  public_withdrawal : nat64;
+  public_cancellation : opt nat64;
+};
+service : () -> {
+  add_order : (Order) -> (Result);
+  get_order : (nat64) -> (opt record { Order; OrderStatus }) query;
+  list_auctionable_orders : (opt nat64, opt nat64) -> (
+      vec record { nat64; Order },
+      opt nat64,
+    ) query;
+  list_orders : () -> (vec record { Order; OrderStatus }) query;
+  update_order_status : (nat64, OrderStatus) -> (Result);
+}

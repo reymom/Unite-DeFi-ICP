@@ -1,0 +1,38 @@
+type AssetFilters = record { allow_assets : vec text; deny_assets : vec text };
+type Config = record {
+  evm : EvmConfig;
+  factory_icp : principal;
+  relayer_id : principal;
+  automatic_tick : opt TickConfig;
+};
+type EcdsaCurve = variant { secp256k1 };
+type EcdsaKeyId = record { name : text; curve : EcdsaCurve };
+type EscrowHandles = record {
+  evm_addr : text;
+  icp_id : principal;
+  revealed : bool;
+};
+type EvmChainConfig = record { rpc_urls : vec text };
+type EvmConfig = record {
+  ecdsa_key_id : EcdsaKeyId;
+  chains : vec record { nat64; EvmChainConfig };
+};
+type Result = variant { Ok : EscrowHandles; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type TickConfig = record {
+  min_profit_icp : nat64;
+  filters : AssetFilters;
+  poll_interval_sec : nat64;
+  max_slippage_bps : nat16;
+};
+service : (Config) -> {
+  deploy_evm_escrow : (text) -> (Result);
+  emergency_withdraw_icp : (principal, blob) -> (Result_1);
+  get_relayer_canister_id : () -> (principal) query;
+  get_resolver_config : () -> (Config) query;
+  get_resolver_evm_address : () -> (text) query;
+  set_relayer_canister_id : (principal) -> ();
+  version : () -> (text) query;
+  withdraw_evm_manual : (text, blob) -> (Result_1);
+  withdraw_icp_manual : (text, blob) -> (Result_1);
+}

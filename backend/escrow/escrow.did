@@ -1,0 +1,53 @@
+type Asset = variant {
+  ICP;
+  Erc20 : record { chain_id : nat64; address : opt text };
+  ICRC : principal;
+};
+type EscrowInfo = record {
+  status : EscrowState;
+  locked_at : opt nat64;
+  admin : principal;
+  canister_id : principal;
+  deployed_at : nat64;
+  claimed_secret : opt blob;
+  params : EscrowParams;
+};
+type EscrowParams = record {
+  payout_addr : text;
+  hashlock : blob;
+  asset : Asset;
+  initiator : text;
+  role : Role;
+  safety_deposit : nat64;
+  counterparty : text;
+  amount : nat64;
+  timelock : Timelocks;
+};
+type EscrowState = variant {
+  Rescued;
+  Open;
+  Locked;
+  Partial : nat64;
+  Cancelled;
+  Completed;
+  Expired;
+};
+type Result = variant { Ok; Err : text };
+type Role = variant { Source; Destination };
+type Timelocks = record {
+  withdrawal : nat64;
+  finality_lock : nat64;
+  cancellation : nat64;
+  public_withdrawal : nat64;
+  public_cancellation : opt nat64;
+};
+service : (EscrowParams) -> {
+  cancel : () -> (Result);
+  factory_lock : () -> (Result);
+  get_escrow : () -> (EscrowInfo) query;
+  lock : () -> (Result);
+  public_cancel : () -> (Result);
+  public_withdraw : (blob) -> (Result);
+  rescue : () -> (Result);
+  withdraw : (blob) -> (Result);
+}

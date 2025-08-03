@@ -1,0 +1,52 @@
+type Asset = variant {
+  ICP;
+  Erc20 : record { chain_id : nat64; address : opt text };
+  ICRC : principal;
+};
+type EscrowInfo = record {
+  status : EscrowState;
+  locked_at : opt nat64;
+  admin : principal;
+  canister_id : principal;
+  deployed_at : nat64;
+  claimed_secret : opt blob;
+  params : EscrowParams;
+};
+type EscrowParams = record {
+  payout_addr : text;
+  hashlock : blob;
+  asset : Asset;
+  initiator : text;
+  role : Role;
+  safety_deposit : nat64;
+  counterparty : text;
+  amount : nat64;
+  timelock : Timelocks;
+};
+type EscrowState = variant {
+  Rescued;
+  Open;
+  Locked;
+  Partial : nat64;
+  Cancelled;
+  Completed;
+  Expired;
+};
+type Result = variant { Ok : principal; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Role = variant { Source; Destination };
+type Timelocks = record {
+  withdrawal : nat64;
+  finality_lock : nat64;
+  cancellation : nat64;
+  public_withdrawal : nat64;
+  public_cancellation : opt nat64;
+};
+service : () -> {
+  create_escrow : (EscrowParams) -> (Result);
+  get_escrow : (principal) -> (opt EscrowInfo) query;
+  get_wasm_hash : () -> (text) query;
+  get_wasm_length : () -> (nat64) query;
+  list_escrows : () -> (vec EscrowInfo) query;
+  set_escrow_wasm : (blob) -> (Result_1);
+}

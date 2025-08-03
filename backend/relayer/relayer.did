@@ -1,0 +1,65 @@
+type Asset = variant {
+  ICP;
+  Erc20 : record { chain_id : nat64; address : opt text };
+  ICRC : principal;
+};
+type AuctionInfo = record {
+  next_drop_at : nat64;
+  order : Order;
+  winner : opt record { principal; text };
+  current_price : float64;
+  finished : bool;
+};
+type Config = record { evm : EvmConfig; orderbook_id : principal };
+type EcdsaCurve = variant { secp256k1 };
+type EcdsaKeyId = record { name : text; curve : EcdsaCurve };
+type EvmChainConfig = record { rpc_urls : vec text };
+type EvmConfig = record {
+  ecdsa_key_id : EcdsaKeyId;
+  chains : vec record { nat64; EvmChainConfig };
+};
+type Order = record {
+  auction_start_rate : float64;
+  signature : blob;
+  maker_asset : Asset;
+  hashlock : blob;
+  maker_evm : text;
+  maker_icp : principal;
+  making_amount : nat;
+  salt : text;
+  price_curve : PriceCurve;
+  safety_deposit : nat64;
+  auction_start_at : nat64;
+  waiting_period : nat64;
+  maker_traits : opt text;
+  timelocks : Timelocks;
+  order_hash : text;
+  taker_asset : Asset;
+  min_return_amount : nat64;
+};
+type PriceCurve = record { points : vec PricePoint };
+type PricePoint = record {
+  price_multiplier : float64;
+  time_offset_secs : nat64;
+};
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : blob; Err : text };
+type Timelocks = record {
+  withdrawal : nat64;
+  finality_lock : nat64;
+  cancellation : nat64;
+  public_withdrawal : nat64;
+  public_cancellation : opt nat64;
+};
+service : (Config) -> {
+  accept_price : (text, text) -> (Result);
+  get_active_auction : (text) -> (opt AuctionInfo) query;
+  get_finished_auction : (text) -> (opt AuctionInfo) query;
+  get_orderbook_canister_id : () -> (principal) query;
+  get_public_secret : (text) -> (Result_1) query;
+  list_active_auctions : () -> (vec AuctionInfo) query;
+  list_finished_auctions : (opt text, nat64) -> (vec text) query;
+  set_orderbook_canister_id : (principal) -> ();
+  submit_order : (Order, blob) -> (Result);
+  verify_and_reveal_secret : (text, text, text, text) -> (Result_1);
+}

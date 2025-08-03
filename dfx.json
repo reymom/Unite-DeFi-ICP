@@ -1,19 +1,87 @@
 {
   "canisters": {
-    "unite-escrow-backend": {
-      "candid": "src/unite-escrow-backend/unite-escrow-backend.did",
-      "package": "unite-escrow-backend",
+    "factory": {
+      "candid": "backend/factory/factory.did",
+      "package": "factory",
       "type": "rust"
     },
-    "unite-escrow-frontend": {
-      "dependencies": [
-        "unite-escrow-backend"
-      ],
-      "source": [
-        "src/unite-escrow-frontend/dist"
-      ],
+    "escrow": {
+      "candid": "backend/escrow/escrow.did",
+      "package": "escrow",
+      "type": "rust"
+    },
+    "orderbook": {
+      "candid": "backend/orderbook/orderbook.did",
+      "package": "orderbook",
+      "type": "rust",
+      "declarations": {
+        "output": "frontend/declarations/orderbook"
+      }
+    },
+    "relayer": {
+      "candid": "backend/relayer/relayer.did",
+      "package": "relayer",
+      "type": "rust",
+      "declarations": {
+        "output": "frontend/declarations/relayer"
+      }
+    },
+    "resolver": {
+      "candid": "backend/resolver/resolver.did",
+      "package": "resolver",
+      "type": "rust"
+    },
+    "frontend": {
+      "dependencies": ["orderbook"],
+      "source": ["frontend/app/src/dist"],
       "type": "assets",
-      "workspace": "unite-escrow-frontend"
+      "workspace": "app"
+    },
+    "evm_rpc": {
+      "type": "pull",
+      "id": "7hfb6-caaaa-aaaar-qadga-cai",
+      "declarations": {
+        "output": "frontend/src/declarations/evm_rpc"
+      }
+    },
+    "sol_rpc": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/sol-rpc-canister/releases/latest/download/sol_rpc_canister.did",
+      "wasm": "https://github.com/dfinity/sol-rpc-canister/releases/latest/download/sol_rpc_canister.wasm.gz",
+      "remote": {
+        "id": {
+          "ic": "tghme-zyaaa-aaaar-qarca-cai"
+        }
+      },
+      "init_arg": "( record {} )"
+    },
+    "internet_identity": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-07-12/internet_identity.did",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-07-12/internet_identity_dev.wasm.gz",
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "frontend": {},
+      "declarations": {
+        "output": "frontend/src/declarations/internet_identity"
+      }
+    },
+    "icp_ledger_canister": {
+      "type": "custom",
+      "candid": "https://raw.githubusercontent.com/dfinity/ic/94fd38099f0e63950eb5d5673b7b9d23780ace2d/rs/rosetta-api/icp_ledger/ledger.did",
+      "wasm": "https://download.dfinity.systems/ic/94fd38099f0e63950eb5d5673b7b9d23780ace2d/canisters/ledger-canister.wasm.gz",
+      "remote": {
+        "id": {
+          "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+        }
+      },
+      "specified_id": "ryjl3-tyaaa-aaaaa-aaaba-cai",
+      "declarations": {
+        "output": "frontend/src/declarations/icp_ledger_canister"
+      }
     }
   },
   "defaults": {

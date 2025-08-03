@@ -104,3 +104,5 @@ The relayer interacts closely with the resolvers. Resolvers can be configured wi
 - Hashing: `keccak256(secret)` is used to validate secrets on both chains.
 - `verify_escrow` and `verify_create2` functions used by relayer and resolver to confirm deployed escrows.
 - New `now_sec()` helper to standardize timestamps.
+
+![unite escrow](docs/images/Unite-Escrow.png)
