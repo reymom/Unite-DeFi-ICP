@@ -1,18 +1,9 @@
 {
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=7.0.0"
-  },
-  "name": "unite-escrow",
-  "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "prebuild": "npm run prebuild --workspaces --if-present",
-    "pretest": "npm run prebuild --workspaces --if-present",
-    "start": "npm start --workspaces --if-present",
-    "test": "npm test --workspaces --if-present"
-  },
-  "type": "module",
-  "workspaces": [
-    "src/unite-escrow-frontend"
-  ]
+  "dependencies": {
+    "@dfinity/auth-client": "^3.1.0",
+    "@dynamic-labs/sdk-react-core": "^4.25.7",
+    "@dynamic-labs/wagmi-connector": "^4.25.7",
+    "viem": "^2.33.2",
+    "wagmi": "^2.16.0"
+  }
 }

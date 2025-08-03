@@ -1,5 +1,33 @@
 [workspace]
 members = [
-    "src/unite-escrow-backend"
+    "backend/factory",
+    "backend/escrow", 
+    "backend/shared",
+    "backend/orderbook",
+    "backend/relayer",
+    "backend/resolver",
 ]
 resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+candid = "0.10"
+ic-cdk = "0.18"
+ic-cdk-macros = "0.18"
+ic-cdk-timers = "0.12"
+ic-stable-structures = "0.7"
+icrc-ledger-types = "0.1"
+ethers-core = "2.0"
+evm-rpc-canister-types = "5.0"
+serde = "1.0"
+sha3 = "0.10"
+thiserror = "2"
+
+# for short-circuiting transitive dependency resolution from ethers-core
+getrandom = { version = "0.2.16", features = ["custom"] }
+
+[patch.crates-io]
+evm-rpc-canister-types = { git = "https://github.com/reymom/icp-evm-coprocessor-starter.git", tag = "v5.0.1-icdk18-re", package = "evm-rpc-canister-types" }
