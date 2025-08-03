@@ -3,6 +3,8 @@
 Cross‑chain atomic‑swap layer that extends **1inch Fusion+** to the Internet Computer (ICP).  
 Current focus: **Ethereum ↔ ICP** and **Bitcoin ↔ ICP**.
 
+[▶ demo video](https://youtu.be/oiNU9ANHoNw)
+
 ![Unite Escrow architecture](docs/images/factory-escrow-1inch-icp.png)
 
 ![Unite Escrow components](docs/images/unite-escrow-architecture.png)
