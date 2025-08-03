@@ -1,61 +1,106 @@
-# `unite-escrow`
+# Unite‑Escrow 🕊️
 
-Welcome to your new `unite-escrow` project and to the Internet Computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
+Cross‑chain atomic‑swap layer that extends **1inch Fusion+** to the Internet Computer (ICP).  
+Current focus: **Ethereum ↔ ICP** and **Bitcoin ↔ ICP**.
 
-To get started, you might want to explore the project directory structure and the default configuration file. Working with this project in your development environment will not affect any production deployment or identity tokens.
+![Unite Escrow architecture](docs/images/factory-escrow-1inch-icp.png)
 
-To learn more before you start working with `unite-escrow`, see the following documentation available online:
+![Unite Escrow components](docs/images/unite-escrow-architecture.png)
 
-- [Quick Start](https://internetcomputer.org/docs/current/developer-docs/setup/deploy-locally)
-- [SDK Developer Tools](https://internetcomputer.org/docs/current/developer-docs/setup/install)
-- [Rust Canister Development Guide](https://internetcomputer.org/docs/current/developer-docs/backend/rust/)
-- [ic-cdk](https://docs.rs/ic-cdk)
-- [ic-cdk-macros](https://docs.rs/ic-cdk-macros)
-- [Candid Introduction](https://internetcomputer.org/docs/current/developer-docs/backend/candid/)
+## Repository layout
 
-If you want to start working on your project right away, you might want to try the following commands:
+- `backend/shared/`: Types & helpers common to all canisters (role, timelocks, assets, secret validation, encoders for EVM calls).
+- `backend/escrow/`: Universal ICP escrow canister (hash‑time‑lock, safety deposit).
+- `backend/factory/`: Canister that deploys escrows and stores registry.
+- `backend/orderbook/`: Dutch auction engine and order registry.
+- `backend/relayer/`: Matching engine and cross-chain secret management.
+- `backend/resolver/`: Verifies winning auctions and orchestrates cross-chain execution.
+- `docs/`: Step‑by‑step script to run the different components on dfx start.
+- `frontend/app/`: Vite + React UI
 
-```bash
-cd unite-escrow/
-dfx help
-dfx canister --help
+## Quick start (local)
+
+> Check the [docs for locally testing the factory and escrow interaction](docs/4.%20escrow-factory-test.md):
+
+- Uploads escrow WASM to the factory.
+- Deploys a local ICP ledger.
+- Mints tokens to test identities.
+- Runs an auto‑pull escrow (ICRC‑2 path) and a manual‑lock escrow (ICRC‑1 path).
+
+## Architecture details
+
+### Escrow canister
+
+- Handles ICP / ICRC‑1/2 escrows.
+- Supports Source and Destination roles with identical logic to 1inch Solidity escrows (private/public withdraw, cancel, rescue).
+- Uses structured `EscrowParams`, `Timelocks`, and a 32-byte `hashlock` to protect funds.
+- Tries to fund automatically on `init()` if the token supports ICRC‑2; else waits for `lock()`.
+- `withdraw(secret)` validates secret and timelock window, releases both asset and safety deposit.
+
+### Factory canister
+
+- Stores escrow WASM once (controller only).
+- `create_escrow(params)` mints a new escrow and persists `EscrowInfo` in a stable `BTreeMap`.
+- Uses candid argument parsing to support upgrades and multiple escrow versions.
+
+### Relayer
+
+- Listens to the on‑chain orderbook; pulls best auction result.
+- Executes `icrc2_approve` on behalf of locker, then calls `create_escrow`.
+- Uses chain‑fusion HTTPS outcalls to:
+  - watch EVM 1inch escrow events,
+  - broadcast/monitor Bitcoin HTLC spends.
+- Pushes the secret into both ICP and EVM/BTC escrows.
+
+## OrderBook canister
+
+- Stores orders onchain in a stable map: `StableBTreeMap<OrderId, Order>`.
+- Dutch auction logic updates each order's price based on time.
+- `list_active_orders()` returns .
+
+### Relayer
+
+> See full [backend/relayer/Readme.md](backend/relayer/Readme.md) for more details.
+
+- Imports and manages active auctions from Orderbook.
+- Computes price ticks and winner selection every 5 seconds.
+- Verifies escrows and reveals secret via `verify_and_reveal_secret()`.
+- Emits the winning 32-byte secret to both ICP and EVM.
+
+### Resolver canister
+
+> See full [backend/resolver/Readme.md](backend/resolver/Readme.md) for details.
+
+- Periodically polls relayer for `list_active_auctions()`.
+- Checks, resolves and manage auction orders:
+  - No winner → `accept_price(order_hash)`.
+  - We are winner → deploy escrows and request `verify_and_reveal_secret()`.
+  - Another is winner → try to withdraw if window open or cancel if expired.
+
+The relayer interacts closely with the resolvers. Resolvers can be configured with different parameters such as `max_slippage_bps` and `min_profit_icp`, in order to automatize the conditions and autonomously resolve orders in competition with other resolvers.
+
+```text
++-------------+        list_active_auctions()        +--------------+
+|  Resolver   | <----------------------------------- |    Relayer    |
++-------------+                                     +--------------+
+       | accept_price(order_hash) if willing
+       v
++-------------+       deploy escrows       +--------------+
+|  Resolver   | -------------------------> |   ICP/EVM    |
++-------------+                            |   Escrows    |
+       |                                    +--------------+
+       | verify_and_reveal_secret()
+       v
++-------------+ <------------------------- +--------------+
+|  Resolver   |          secret            |    Relayer    |
++-------------+                            +--------------+
+       | withdraw(secret) both chains
 ```
 
-## Running the project locally
+### Shared module (backend/shared/)
 
-If you want to test your project locally, you can use the following commands:
-
-```bash
-# Starts the replica, running in the background
-dfx start --background
-
-# Deploys your canisters to the replica and generates your candid interface
-dfx deploy
-```
-
-Once the job completes, your application will be available at `http://localhost:4943?canisterId={asset_canister_id}`.
-
-If you have made changes to your backend canister, you can generate a new candid interface with
-
-```bash
-npm run generate
-```
-
-at any time. This is recommended before starting the frontend development server, and will be run automatically any time you run `dfx deploy`.
-
-If you are making frontend changes, you can start a development server with
-
-```bash
-npm start
-```
-
-Which will start a server at `http://localhost:8080`, proxying API requests to the replica at port 4943.
-
-### Note on frontend environment variables
-
-If you are hosting frontend code somewhere without using DFX, you may need to make one of the following adjustments to ensure your project does not fetch the root key in production:
-
-- set`DFX_NETWORK` to `ic` if you are using Webpack
-- use your own preferred method to replace `process.env.DFX_NETWORK` in the autogenerated declarations
-  - Setting `canisters -> {asset_canister_id} -> declarations -> env_override to a string` in `dfx.json` will replace `process.env.DFX_NETWORK` with the string in the autogenerated declarations
-- Write your own `createActor` constructor
+- Types: `Asset`, `Role`, `Timelocks`, `EscrowParams`, `Order`, `AuctionDetail`, etc.
+- Encoding: `encode_src_immutables`, `encode_dst_immutables` match EVM constructor args.
+- Hashing: `keccak256(secret)` is used to validate secrets on both chains.
+- `verify_escrow` and `verify_create2` functions used by relayer and resolver to confirm deployed escrows.
+- New `now_sec()` helper to standardize timestamps.
