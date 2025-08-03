@@ -1,0 +1,13 @@
+[package]
+name = "shared"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+candid = { workspace = true }
+ic-cdk = { workspace = true }
+ic-stable-structures = { workspace = true }
+icrc-ledger-types = { workspace = true }
+ethers-core = { workspace = true }
+evm-rpc-canister-types = { workspace = true }
+serde = { workspace = true }
