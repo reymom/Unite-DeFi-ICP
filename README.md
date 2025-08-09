@@ -3,11 +3,24 @@
 Cross‑chain atomic‑swap layer that extends **1inch Fusion+** to the Internet Computer (ICP).  
 Current focus: **Ethereum ↔ ICP** and **Bitcoin ↔ ICP**.
 
+**🏆 Awards**: 🥈 2nd place — 1inch Fusion+ → ICP track (ETHGlobal)
+
 [▶ demo video](https://youtu.be/oiNU9ANHoNw)
 
 ![Unite Escrow architecture](docs/images/factory-escrow-1inch-icp.png)
 
 ![Unite Escrow components](docs/images/unite-escrow-architecture.png)
+
+---
+
+## Status
+
+- ✅ ICP leg fully on-chain: Orderbook (Dutch auction), Relayer, Resolver, Factory, **universal Escrow** (hashlock + timelocks, ICRC-2 auto-pull).
+- ✅ End-to-end local demo (scripts + video).  
+- 🧪 EVM leg **mocked** for demo (Escrow verification stubbed).  
+- 🚧 Next: deploy EVM escrows on Arbitrum Sepolia + bidirectional swaps + thin UI.
+
+---
 
 ## Repository layout
 
@@ -106,5 +119,13 @@ The relayer interacts closely with the resolvers. Resolvers can be configured wi
 - Hashing: `keccak256(secret)` is used to validate secrets on both chains.
 - `verify_escrow` and `verify_create2` functions used by relayer and resolver to confirm deployed escrows.
 - New `now_sec()` helper to standardize timestamps.
+
+---
+
+## Roadmap
+
+- **M1**: EVM escrow on Arbitrum Sepolia + verification in relayer.  
+- **M2**: Bidirectional swaps (ETH↔ICP), partial fills prototype.  
+- **M3**: Minimal UI + docs + monitoring; mainnet plan.
 
 ![unite escrow](docs/images/Unite-Escrow.png)
