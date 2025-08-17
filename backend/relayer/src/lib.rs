@@ -4,11 +4,12 @@ mod tick;
 mod verifier;
 
 use candid::Principal;
+use ethers_core::utils::{hex, keccak256};
 // use ethers_core::utils::{hex, keccak256};
 use ic_cdk::{
     api::msg_caller, call::Call, export_candid, init, post_upgrade, pre_upgrade, query, update,
 };
-use shared::{AuctionInfo, Order, now_sec};
+use shared::{Asset, AuctionInfo, Order, make_dst_params, make_src_params, now_sec};
 
 use crate::{
     state::{
@@ -19,7 +20,7 @@ use crate::{
         spawn_check_evm_address,
     },
     tick::spawn_tick,
-    // verifier::{evm, icp},
+    verifier::{evm, icp},
 };
 
 #[init]
@@ -72,9 +73,9 @@ async fn submit_order(order: Order, secret: Vec<u8>) -> Result<(), String> {
     if secret.len() != 32 {
         return Err("secret must be 32 bytes".into());
     }
-    // if keccak256(&secret) != order.hashlock {
-    //     return Err("secret does not match hashlock".into());
-    // }
+    if keccak256(&secret) != order.hashlock {
+        return Err("secret does not match hashlock".into());
+    }
 
     // persist in Orderbook (cross-canister call)
     let orderbook_id = get_config().orderbook_id;
@@ -131,10 +132,11 @@ pub fn accept_price(order_hash: String, resolver_evm: String) -> Result<(), Stri
     })
 }
 
+/// Verify both escrows (ICP & EVM), then reveal secret to the winner.
 #[update]
 async fn verify_and_reveal_secret(
-    _evm_escrow_addr: String,
-    _icp_escrow_canister: String,
+    evm_escrow_addr: String,
+    icp_escrow_canister: String,
     order_hash: String,
     resolver_evm: String,
 ) -> Result<Vec<u8>, String> {
@@ -150,61 +152,62 @@ async fn verify_and_reveal_secret(
         return Err("caller is not winner".into());
     }
 
-    // let dst_params = make_dst_params(&info.order, resolver_principal, &resolver_evm);
-    // let src_params = make_src_params(
-    //     &info.order,
-    //     info.current_price,
-    //     resolver_principal,
-    //     &resolver_evm,
-    // );
+    // --- Build expected params for both legs (shared helpers) ---
+    let dst_params = make_dst_params(&info.order, resolver_principal, &resolver_evm);
+    let src_params = make_src_params(
+        &info.order,
+        info.current_price,
+        resolver_principal,
+        &resolver_evm,
+    );
 
     // Decide which leg is ICP/EVM
-    // let (params_icp, params_evm) = match (&src_params.asset, &dst_params.asset) {
-    //     (Asset::ICP | Asset::ICRC(_), Asset::Erc20 { .. }) => (&src_params, &dst_params),
-    //     (Asset::Erc20 { .. }, Asset::ICP | Asset::ICRC(_)) => (&dst_params, &src_params),
-    //     _ => return Err("swap must involve exactly one EVM and one ICP asset".into()),
-    // };
+    let (params_icp, params_evm) = match (&src_params.asset, &dst_params.asset) {
+        (Asset::ICP | Asset::ICRC(_), Asset::Erc20 { .. }) => (&src_params, &dst_params),
+        (Asset::Erc20 { .. }, Asset::ICP | Asset::ICRC(_)) => (&dst_params, &src_params),
+        _ => return Err("swap must involve exactly one EVM and one ICP asset".into()),
+    };
 
-    // // 1. Verify ICP escrow
-    // icp::verify_escrow(&icp_escrow_canister, &params_icp)
-    //     .await?
-    //     .then_some(())
-    //     .ok_or("ICP escrow verification failed")?;
+    // 1. Verify ICP escrow
+    icp::verify_escrow(&icp_escrow_canister, &params_icp)
+        .await?
+        .then_some(())
+        .ok_or("ICP escrow verification failed")?;
 
-    // // 2. Verify EVM escrow
-    // let chain_id = match params_evm.asset {
-    //     Asset::Erc20 { chain_id, .. } => chain_id,
-    //     _ => return Err("source asset is not ERC-20".into()),
-    // };
-    // let mut hash_bytes = [0u8; 32];
-    // {
-    //     let h = order_hash.trim_start_matches("0x");
-    //     let b = hex::decode(h).map_err(|e| format!("bad order_hash: {e}"))?;
-    //     if b.len() != 32 {
-    //         return Err("order_hash must be 32-byte hex".into());
-    //     }
-    //     hash_bytes.copy_from_slice(&b);
-    // }
-    // evm::verify_escrow(
-    //     &get_config().evm,
-    //     chain_id,
-    //     &evm_escrow_addr,
-    //     &params_evm,
-    //     &hash_bytes,
-    // )
-    // .await?
-    // .then_some(())
-    // .ok_or("EVM escrow verification failed")?;
+    // 2. Verify EVM escrow
+    let chain_id = match params_evm.asset {
+        Asset::Erc20 { chain_id, .. } => chain_id,
+        _ => return Err("source asset is not ERC-20".into()),
+    };
+    let mut hash_bytes = [0u8; 32];
+    {
+        let h = order_hash.trim_start_matches("0x");
+        let b = hex::decode(h).map_err(|e| format!("bad order_hash: {e}"))?;
+        if b.len() != 32 {
+            return Err("order_hash must be 32-byte hex".into());
+        }
+        hash_bytes.copy_from_slice(&b);
+    }
+    evm::verify_escrow(
+        &get_config().evm,
+        chain_id,
+        &evm_escrow_addr,
+        &params_evm,
+        &hash_bytes,
+    )
+    .await?
+    .then_some(())
+    .ok_or("EVM escrow verification failed")?;
 
-    // if dst_params.hashlock != src_params.hashlock {
-    //     return Err("hashlock mismatch".into());
-    // }
+    if dst_params.hashlock != src_params.hashlock {
+        return Err("hashlock mismatch".into());
+    }
 
     // 4. Reveal secret
     let secret = secret::take_secret(&order_hash).ok_or("secret not found / already revealed")?;
-    // if keccak256(&secret) != dst_params.hashlock {
-    //     return Err("secret mismatch with hashlock".into());
-    // }
+    if keccak256(&secret) != dst_params.hashlock {
+        return Err("secret mismatch with hashlock".into());
+    }
 
     // mark auction closed & move to FINISHED
     ACTIVE_AUCTIONS.with(|a| {

@@ -232,7 +232,7 @@ pub fn classify_assets(
     }
 }
 
-fn prepare_evm_calldata(auc: &AuctionInfo, params: &EscrowParams) -> Result<Vec<u8>> {
+pub fn prepare_evm_calldata(auc: &AuctionInfo, params: &EscrowParams) -> Result<Vec<u8>> {
     let order_hash_bytes = hex_to_bytes32(&auc.order.order_hash)?;
     let maker_evm = parse_evm_addr(&params.counterparty)?;
     let taker_evm = parse_evm_addr(&params.initiator)?;
